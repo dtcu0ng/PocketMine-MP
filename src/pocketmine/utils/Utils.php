@@ -527,7 +527,7 @@ class Utils{
 		$ret = explode("\n", $contents);
 		ob_end_clean();
 
-		if(count($ret) >= 1 and preg_match('/^.* refcount\\(([0-9]+)\\)\\{$/', trim($ret[0]), $m) > 0){
+		if(preg_match('/^.* refcount\\(([0-9]+)\\)\\{$/', trim($ret[0]), $m) > 0){
 			return ((int) $m[1]) - ($includeCurrent ? 3 : 4); //$value + zval call + extra call
 		}
 		return -1;
@@ -682,6 +682,21 @@ class Utils{
 	public static function validateCallableSignature(callable $signature, callable $subject) : void{
 		if(!($sigType = CallbackType::createFromCallable($signature))->isSatisfiedBy($subject)){
 			throw new \TypeError("Declaration of callable `" . CallbackType::createFromCallable($subject) . "` must be compatible with `" . $sigType . "`");
+		}
+	}
+
+	/**
+	 * @phpstan-template TMemberType
+	 * @phpstan-param array<mixed, TMemberType> $array
+	 * @phpstan-param \Closure(TMemberType) : void $validator
+	 */
+	public static function validateArrayValueType(array $array, \Closure $validator) : void{
+		foreach($array as $k => $v){
+			try{
+				$validator($v);
+			}catch(\TypeError $e){
+				throw new \TypeError("Incorrect type of element at \"$k\": " . $e->getMessage(), 0, $e);
+			}
 		}
 	}
 
